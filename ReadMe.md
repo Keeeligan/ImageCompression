@@ -1,5 +1,4 @@
 # Image compression
-
 ## Summary
 
 ## Packages used
