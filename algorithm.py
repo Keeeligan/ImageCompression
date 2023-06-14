@@ -34,13 +34,19 @@ def open_image(image_name: str):
         # Return None if it couldn't open the picture
         print("Failed: Couldn't open the picture")
         return None
+
+    if check_image(img) is None:
+        return None
+
     print(f"Original amount of prixels: {width*height}")
+    return img
 
 
 def check_image(img):
     width, height = img.size
     if not width % 2 == 0 or not height % 2 == 0:
         return None
+    return
 
 def colour_space_conversion(img):
     """
@@ -58,9 +64,13 @@ def colour_space_conversion(img):
     width, height = img.size
     converted_image = np.ndarray([])
 
-    for i in range(1, width):
-        for j in range(1, height):
-            pix_val = img.getpixel((i, j))
+    # Convert each rgb value to the YCbCr colour space.
+    for y in range(1, height):
+        for x in range(1, width):
+            pix_val = img.getpixel((y, x))
+            converted_image[y, x] = rgb_to_ycbcr(pix_val)
+
+    return converted_image
 
 
 def rgb_to_ycbcr(rgb):
