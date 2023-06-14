@@ -3,3 +3,6 @@
 
 ## Packages used
 - pygame
+- Pillow
+- colorsys
+- numpy
