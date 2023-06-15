@@ -3,8 +3,17 @@ import colorsys
 import numpy as np
 
 
+
+
 def test_algorithm(image_name: str):
     img = open_image(image_name)
+    if img is None:
+        print("stopping compression")
+    img = colour_space_conversion(img)
+
+    img = chrominance_downsample(img)
+
+
 
 
 def jpeg_algorithm():
@@ -15,7 +24,10 @@ def jpeg_algorithm():
 
 def open_image(image_name: str):
     """
-    Opens and returns the image
+    Opens and returns the image.
+
+    :param image_name: String containing the file name of the image.
+    :return: None if failed, else the opened image
     """
     print(f"Trying to open the image {image_name}...")
     try:
@@ -48,6 +60,7 @@ def check_image(img):
         return None
     return
 
+
 def colour_space_conversion(img):
     """
     This function converts all the RGB values of an image to a different colour space.
@@ -55,11 +68,11 @@ def colour_space_conversion(img):
     The Luminance represents the brightness, and the Blue- and Red Chrominance make out the colours.
 
     Note:
-    Using this conversion you can use the Luminance as a base layer, now if we downsample  the two Chrominance
+    Using this conversion you can use the Luminance as a base layer, now if we downsample the two Chrominance
     layers we're able to keep a good amount of detail/precision when we deleted quite a bit of information.
 
     :param img: The image that needs converting.
-    :return:
+    :return: np.ndarray containing the converted pixel values.
     """
     width, height = img.size
     converted_image = np.ndarray([])
@@ -83,7 +96,6 @@ def rgb_to_ycbcr(rgb):
     """
 
     # Shift the RGB values down by 128.
-    rgb = (204, 104, 45)
     r, g, b = [x-128 for x in rgb]
 
 
@@ -91,12 +103,34 @@ def rgb_to_ycbcr(rgb):
     y = 0.299 * r + 0.587 * g + 0.114 * b
     cb = (b - y) / (2 * (1 - 0.114))
     cr = (r - y) / (2 * (1 - 0.299))
-    # y, cb, cr = colorsys.rgb_to_ycbcr(r / 255, g / 255, b / 255)
     return y, cb, cr
 
 
-def chrominance_downsample(img: tuple):
-    pass
+def chrominance_downsample(img: np.ndarray):
+    """
+    Takes the YCbCr values of an img and creates 2x2 blocks and makes it one pixel based on the average
+    of the values in the 2x2 block.
+
+    :param img: np.ndarray with the YCbCr values of an img
+    :return: Tuple with 3 ndarrays containing the Luminance layer, and the two downsampled chrominance layers.
+    """
+    # Initialize the layers with the correct shape.
+    luminance = np.ndarray(shape=(img.shape[0], img.shape[1]), dtype=np.float32)
+    blue_chrominance = np.ndarray(shape=(img.shape[0] // 2, img.shape[1] // 2), dtype=np.float32)
+    red_chrominance = np.ndarray(shape=(img.shape[0] // 2, img.shape[1] // 2), dtype=np.float32)
+
+    # Fill the luminance layer with the same values.
+    for y in range(img.shape[0]):
+        for x in range(img.shape[1]):
+            luminance[y, x] = img[y, x, 0]
+
+    # Fill the chrominance layers that are 1/4 of the size.
+    for y in range(0, img.shape[0], 2):
+        for x in range(0, img.shape[1], 2):
+            blue_chrominance[y // 2, x // 2] = np.average([img[y, x, 1], img[y, x + 1, 1], img[y + 1, x, 1], img[y + 1, x + 1, 1]])
+            red_chrominance[y // 2, x // 2] = np.average([img[y, x, 2], img[y, x + 1, 2], img[y + 1, x, 2], img[y + 1, x + 1, 2]])
+
+    return luminance, blue_chrominance, red_chrominance
 
 
 def test():
