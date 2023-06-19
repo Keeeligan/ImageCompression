@@ -21,10 +21,6 @@ def jpeg_algorithm():
 
 
 
-
-
-
-
 def colour_space_conversion(img:np.ndarray):
     """
     This function converts all the RGB values of an image to a different colour space.
@@ -73,7 +69,7 @@ def chrominance_downsample(img: np.ndarray):
     of the values in the 2x2 block.
 
     :param img: np.ndarray with the YCbCr values of an img
-    :return: Tuple with 3 ndarrays containing the Luminance layer, and the two downsampled chrominance layers.
+    :return: Tuple with 3 ndarrays containing the Luminance layer, and the two down sampled chrominance layers.
     """
     # Initialize the layers with the correct shape.
     luminance = np.ndarray(shape=(img.shape[0], img.shape[1]), dtype=np.float32)
@@ -92,6 +88,89 @@ def chrominance_downsample(img: np.ndarray):
             red_chrominance[y // 2, x // 2] = np.average([img[y, x, 2], img[y, x + 1, 2], img[y + 1, x, 2], img[y + 1, x + 1, 2]])
 
     return luminance, blue_chrominance, red_chrominance
+
+
+def discrete_cosine_transform(img: np.ndarray, block_size=8):
+    # Set the compression ratio
+    compression_ratio = 0.1  # Keep only the top 10% of coefficients
+
+    # Divide the image into blocks (e.g., 8x8 blocks)
+    height, width = img.size
+    num_blocks_h = height // block_size
+    num_blocks_w = width // block_size
+
+    # Compress each block
+    compressed_blocks = []
+    for i in range(num_blocks_h):
+        for j in range(num_blocks_w):
+            block = img[i * block_size:(i + 1) * block_size, j * block_size:(j + 1) * block_size]
+            dct_block = dct(block)
+
+            # Determine the number of coefficients to keep
+            num_coeffs = int(dct_block.size * compression_ratio)
+            sorted_coeffs = np.abs(dct_block).ravel().argsort()[::-1][:num_coeffs]
+
+            # Set the remaining coefficients to zero
+            mask = np.zeros_like(dct_block)
+            mask.ravel()[sorted_coeffs] = 1
+            compressed_dct_block = dct_block * mask
+
+            compressed_blocks.append(compressed_dct_block)
+
+    return compressed_blocks
+
+
+def discrete_cosine_transform_reconstruct(img: np.ndarray, compressed_blocks, block_size=8):
+    height, width = img.size
+    num_blocks_h = height // block_size
+    num_blocks_w = width // block_size
+
+    # Reconstruct the compressed image
+    compressed_image = np.zeros_like(img)
+    for i in range(num_blocks_h):
+        for j in range(num_blocks_w):
+            compressed_dct_block = compressed_blocks[i * num_blocks_w + j]
+            block = inv_dct(compressed_dct_block)
+            compressed_image[i * block_size:(i + 1) * block_size, j * block_size:(j + 1) * block_size] = block
+
+    # Convert back to uint8 format (0-255)
+    compressed_image = np.uint8(compressed_image)
+    return compressed_image
+
+
+def dct(block):
+    N = block.shape[0]
+    M = block.shape[1]
+    alpha = np.ones_like(block) * np.sqrt(2/N)
+    alpha[0, :] = np.sqrt(1/N)
+
+    dct_block = np.zeros_like(block, dtype=float)
+
+    for u in range(N):
+        for v in range(M):
+            for i in range(N):
+                for j in range(M):
+                    dct_block[u, v] += block[i, j] * np.cos((2*i + 1) * u * np.pi / (2*N)) * np.cos((2*j + 1) * v * np.pi / (2*M))
+            dct_block[u, v] *= alpha[u, v]
+
+    return dct_block
+
+
+def inv_dct(dct_block):
+    N = dct_block.shape[0]
+    M = dct_block.shape[1]
+    alpha = np.ones_like(dct_block) * np.sqrt(2/N)
+    alpha[0, :] = np.sqrt(1/N)
+
+    block = np.zeros_like(dct_block, dtype=float)
+
+    for i in range(N):
+        for j in range(M):
+            for u in range(N):
+                for v in range(M):
+                    block[i, j] += alpha[u, v] * dct_block[u, v] * np.cos((2*i + 1) * u * np.pi / (2*N)) * np.cos((2*j + 1) * v * np.pi / (2*M))
+
+    return block
 
 
 def test():
