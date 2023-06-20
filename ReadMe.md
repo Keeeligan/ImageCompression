@@ -6,3 +6,5 @@
 - Pillow
 - colorsys
 - numpy
+- json
+- pickle
