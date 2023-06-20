@@ -2,13 +2,23 @@ from PIL import Image
 import algorithm_simple as alg_s
 import algorithm_complex as alg_c
 import numpy as np
+import json
+import pickle
 
+from pprint import pprint
 
 def main():
     image_name = "logitech_mouse_1.png"
     img = open_image(image_name)
+    save_compressed_data(img, "og_"+image_name)
     if img is None:
+        print(img)
         print("stopping compression")
+        return
+    img = alg_s.test_algorithm(img)
+    save_compressed_data(img, "new_"+image_name)
+    # save_image(img, image_name)
+    # build_image(img, image_name)
 
 
 
@@ -23,38 +33,56 @@ def open_image(image_name: str):
     try:
         # Relative Path
         img = Image.open("images/IN/"+image_name)
+        # Convert image to RGB color mode
+        img = img.convert("RGB")
 
         # Check if the image has the correct size.
+        ''' Keeps breaking cus of weird resolution
         if check_image(img) is None:
             return None
+        '''
 
-        # Convert each rgb value to the YCbCr colour space.
         width, height = img.size
-        img_tuple = np.ndarray([])
-
-        for y in range(1, height):
-            for x in range(1, width):
-                img_tuple[y, x] = img.getpixel((y, x))
+        img_array = np.empty((height, width, 3), dtype=np.uint8)
+        for y in range(height):
+            for x in range(width):
+                img_array[y, x] = list(img.getpixel((x, y)))
 
         # return the opened image
-        return img_tuple
+        print("Returning opened image...")
+        return img_array
 
     except IOError:
         # Return None if it couldn't open the picture
         print("Failed: Couldn't open the picture")
         return None
 
-
-
     print(f"Original amount of pixels: {width*height}")
     return img
 
-def check_image(img):
-    width, height = img.size
-    if not width % 2 == 0 or not height % 2 == 0:
-        return None
+
+
+def save_compressed_data(img, name: str, directory="images/STORE/"):
+    name = name.strip(".png")
+    pprint(type(img))
+    print(len(img))
+    if type(img) == list:
+        # Save with json
+        with open(f'{directory}{name}.json', 'w') as f:
+            json.dump(img, f)
+
+        # Save with Pickle
+        with open(f'{directory}{name}.pickle', 'wb') as file:
+            pickle.dump(img, file)
+
+        return
+    np.save(f"{directory}{name}.npy", img)
     return
 
+
+def save_image(img: np.ndarray, image_name, mode="RGB", directory="images/OUT/"):
+    new_img = Image.fromarray(img, mode=mode)
+    new_img.save(f"{directory}{image_name}")
 
 
 if __name__ == "__main__":

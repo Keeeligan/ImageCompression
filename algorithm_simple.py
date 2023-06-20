@@ -1,15 +1,16 @@
 import numpy as np
 
-def test_algorithm(img: np.ndarray):
+def test_algorithm(img: np.ndarray) -> np.ndarray:
     """
 
     :param img: np.ndarray with all the pixel values.
     """
+
+
     img = colour_compress(img)
+    img = run_length_enc(img)
 
-
-
-    pass
+    return img
 
 
 
@@ -25,32 +26,31 @@ def colour_compress(img: np.ndarray):
             rgb = []
             for i in range(len(img[y, x])):
                 rgb.append(img[y, x][i] - (img[y, x][i] % 4))
-            img[y, x] = tuple(rgb)
+            img[y, x] = np.array(rgb)
     return img
 
 
-
-
-
-def run_length_enc(img: np.ndarray):
+def run_length_enc(img: np.ndarray) -> list:
     """
     @TODO:
     :param img:
     :return:
     """
-    img_rle = np.array
+    img_rle = []
 
     for y in range(img.shape[0]):
         row = []
         count = 1
         for x in range(img.shape[1]-1):
-            if img[y, x] == img[y, x + 1]:
+            if img[y, x][0] == img[y, x + 1][0] and img[y, x][1] == img[y, x + 1][1] and img[y, x][2] == img[y, x + 1][2]:
                 count += 1
             else:
-                row.append((img[y, x - 1], count))
+                row.append((img[y, x].tolist(), count))
                 count = 1
-        img_rle = np.append(img_rle, row)
+        row.append((img[y, x].tolist(), count))
+        img_rle.append(row)
 
+    # return np.array(img_rle)
     return img_rle
 
 
@@ -62,15 +62,6 @@ def build_image():
     """
     pass
 
-
-
-
-def save_image(img):
-
-    # Build the image out of the array.
-
-    # Save the image
-    pass
 
 
 if __name__ == "__main__":
