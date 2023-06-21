@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+from PIL import Image
 
 def test_algorithm(img: np.ndarray) -> np.ndarray:
     """
@@ -55,12 +57,29 @@ def run_length_enc(img: np.ndarray) -> list:
 
 
 
-def build_image():
+def build_image(image_name: str, directory="images/STORE/"):
     """
+    Reverse RLE
+
     @TODO
     Builds the image
     """
-    pass
+
+    # Open the data
+    image_name = image_name.strip(".png")
+    rle = pd.read_pickle(f'{directory}ew_{image_name}.pickle')
+
+    # Initialize the array with the original resolution
+    img = Image.open(f"images/IN/{image_name}.png")
+    width, height = img.size
+    res = np.empty(shape=(height, width, 3), dtype=np.uint8)
+    for y in range(len(rle)):
+        row = []
+        for x in range(len(rle[y])):
+            for i in range(rle[y][x][1]):
+                row.append(rle[y][x][0])
+        res[y] = row
+    return res
 
 
 

@@ -16,9 +16,9 @@ def main():
         print("stopping compression")
         return
     img = alg_s.test_algorithm(img)
-    save_compressed_data(img, "new_"+image_name)
-    # save_image(img, image_name)
-    # build_image(img, image_name)
+    save_compressed_data(img, f"new_{image_name}")
+    img = alg_s.build_image(image_name)
+    save_image(img, image_name)
 
 
 
@@ -64,8 +64,6 @@ def open_image(image_name: str):
 
 def save_compressed_data(img, name: str, directory="images/STORE/"):
     name = name.strip(".png")
-    pprint(type(img))
-    print(len(img))
     if type(img) == list:
         # Save with json
         with open(f'{directory}{name}.json', 'w') as f:
