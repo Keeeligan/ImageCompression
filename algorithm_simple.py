@@ -65,7 +65,6 @@ def run_length_enc(img: np.ndarray) -> list:
         row.append((img[y, x].tolist(), count))
         img_rle.append(row)
 
-    # return np.array(img_rle)
     return img_rle
 
 

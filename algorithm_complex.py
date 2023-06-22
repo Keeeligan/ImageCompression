@@ -4,20 +4,35 @@ import pandas as pd
 
 import json
 
+quantization_table = np.array([
+    [4,  3,  4,  4,  4,  6,  11,  15],
+    [3,  3,  3,  4,  5,  8,  14,  19],
+    [3,  4,  4,  5,  8,  12,  16,  19],
+    [4,  5,  6,  7,  12,  14,  18, 20],
+    [6,  6,  9,  11,  14, 17, 21,  23],
+    [9,  12,  12,  18,  23, 22, 25, 21],
+    [11,  13,  15,  17, 21, 23, 25, 21],
+    [13,  12,  12,  13, 16, 19, 21,  21]
+])
+
 
 def test_algorithm(img: np.ndarray):
     height, width = img.shape[0], img.shape[1]
     img.astype(int)
     img = colour_space_conversion(img)
 
-    img = img.tolist()
 
-    # img = chrominance_downsample(img)
-    # print(f"{len(img[1])}x{len(img[1][0])}")
+    lum, blue_chr, red_chr = chrominance_downsample(img)
 
-    # img = discrete_cosine_transform(img[0])
+    # lum_dct = discrete_cosine_transform(lum)
+    blue_chr_dct = discrete_cosine_transform(blue_chr)
+    # red_chr_dct = discrete_cosine_transform(red_chr)
+    print(blue_chr_dct)
+    with open(f'images/STORE/test1.json', 'w') as f:
+        json.dump(blue_chr_dct, f)
 
-    return img
+    res=[]
+    return res
 
 
 
@@ -150,13 +165,14 @@ def chrominance_downsample(img: np.ndarray):
     return luminance, blue_chrominance, red_chrominance
 
 
-def discrete_cosine_transform(img: np.ndarray, block_size=8):
+def discrete_cosine_transform(img: np.ndarray, block_size=8, quantization_table=None):
     """
     Applies the Discrete Cosine Transform (DCT) to the input image.
 
     Args:
         img (np.ndarray): Input image as a 2D NumPy array.
         block_size (int, optional): Size of the blocks to divide the image into for compression. Default is 8.
+        quantization_table (np.ndarray, optional): Quantization table as a 2D NumPy array. Default is None.
 
     Returns:
         list: List of compressed DCT blocks.
@@ -186,12 +202,18 @@ def discrete_cosine_transform(img: np.ndarray, block_size=8):
             mask.ravel()[sorted_coeffs] = 1
             compressed_dct_block = dct_block * mask
 
-            compressed_blocks.append(compressed_dct_block)
+            # Apply quantization if a quantization table is provided
+            if quantization_table is not None:
+                quantized_dct_block = quantize_dct_block(compressed_dct_block, quantization_table)
+                compressed_blocks.append(quantized_dct_block)
+            else:
+                compressed_blocks.append(compressed_dct_block)
 
     return compressed_blocks
 
 
-def discrete_cosine_transform_reconstruct(img: np.ndarray, compressed_blocks, block_size=8):
+
+def discrete_cosine_transform_reconstruct(img: np.ndarray, compressed_blocks, block_size=8, quantization_table=None):
     """
     Reconstructs the compressed image using the compressed DCT blocks.
 
@@ -199,26 +221,45 @@ def discrete_cosine_transform_reconstruct(img: np.ndarray, compressed_blocks, bl
         img (np.ndarray): Compressed image as a 2D NumPy array.
         compressed_blocks (list): List of compressed DCT blocks.
         block_size (int, optional): Size of the blocks used for compression. Default is 8.
+        quantization_table (np.ndarray, optional): Quantization table as a 2D NumPy array. Default is None.
 
     Returns:
-        np.ndarray: Reconstructed image as a 2D NumPy array.
+        np.ndarray: Reconstructed image.
 
     """
-    height, width = img.shape
-    num_blocks_h = height // block_size
-    num_blocks_w = width // block_size
+    # Set the compression ratio
+    compression_ratio = 0.1  # Keep only the top 10% of coefficients
 
-    # Reconstruct the compressed image
-    compressed_image = np.zeros_like(img)
+    # Determine the dimensions of the reconstructed image
+    num_blocks_h = img.shape[0] // block_size
+    num_blocks_w = img.shape[1] // block_size
+    height = num_blocks_h * block_size
+    width = num_blocks_w * block_size
+
+    # Reconstruct the image block by block
+    reconstructed_img = np.zeros((height, width))
+    block_index = 0
     for i in range(num_blocks_h):
         for j in range(num_blocks_w):
-            compressed_dct_block = compressed_blocks[i * num_blocks_w + j]
-            block = inv_dct(compressed_dct_block)
-            compressed_image[i * block_size:(i + 1) * block_size, j * block_size:(j + 1) * block_size] = block
+            # Get the compressed DCT block
+            compressed_dct_block = compressed_blocks[block_index]
 
-    # Convert back to uint8 format (0-255)
-    compressed_image = np.uint8(compressed_image)
-    return compressed_image
+            # Apply dequantization if a quantization table is provided
+            if quantization_table is not None:
+                quantized_dct_block = dequantize_dct_block(compressed_dct_block, quantization_table)
+                compressed_dct_block = quantized_dct_block
+
+            # Reconstruct the block by applying the inverse DCT
+            reconstructed_block = inv_dct(compressed_dct_block)
+
+            # Place the reconstructed block in the image
+            start_i = i * block_size
+            start_j = j * block_size
+            reconstructed_img[start_i:start_i + block_size, start_j:start_j + block_size] = reconstructed_block
+
+            block_index += 1
+
+    return reconstructed_img
 
 
 def dct(block):
@@ -274,6 +315,65 @@ def inv_dct(dct_block):
                     block[i, j] += alpha[u, v] * dct_block[u, v] * np.cos((2*i + 1) * u * np.pi / (2*N)) * np.cos((2*j + 1) * v * np.pi / (2*M))
 
     return block
+
+def quantize_dct_block(dct_block, quantization_table):
+    """
+    Quantizes the given DCT block using the specified quantization table.
+
+    Args:
+        dct_block (np.ndarray): DCT block as a 2D NumPy array.
+        quantization_table (np.ndarray): Quantization table as a 2D NumPy array.
+
+    Returns:
+        np.ndarray: Quantized DCT block.
+
+    """
+    # return np.round(dct_block / quantization_table)
+    return np.rint(dct_block / quantization_table).astype(int)
+
+
+def dequantize_dct_block(quantized_dct_block, quantization_table):
+    """
+    Dequantizes the given quantized DCT block using the specified quantization table.
+
+    Args:
+        quantized_dct_block (np.ndarray): Quantized DCT block as a 2D NumPy array.
+        quantization_table (np.ndarray): Quantization table as a 2D NumPy array.
+
+    Returns:
+        np.ndarray: Dequantized DCT block.
+
+    """
+    return quantized_dct_block * quantization_table
+
+
+def run_length_encoding(quantized_block):
+    """
+    Applies run-length encoding (RLE) for each quantized block.
+
+    Args:
+        quantized_block (np.ndarray): Quantized block as a 1D NumPy array.
+
+    Returns:
+        list: List of run-length pairs representing the compressed block.
+
+    """
+    compressed_block = []
+    count = 0
+    current_value = quantized_block[0]
+
+    for value in quantized_block:
+        if value == current_value:
+            count += 1
+        else:
+            compressed_block.append((count, current_value))
+            count = 1
+            current_value = value
+
+    compressed_block.append((count, current_value))
+
+    return compressed_block
+
 
 
 def test():
