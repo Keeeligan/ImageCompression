@@ -7,8 +7,7 @@ import pickle
 
 from pprint import pprint
 
-def main():
-    image_name = "logitech_mouse_1.png"
+def run_simple_algorithm(image_name:str = "logitech_mouse_1.png" ):
     img = open_image(image_name)
     save_compressed_data(img, "og_"+image_name)
     if img is None:
@@ -21,13 +20,31 @@ def main():
     save_image(img, image_name)
 
 
+def run_complex_algorithm(image_name:str = "logitech_mouse_1.png"):
+    img = open_image(image_name)
+    save_compressed_data(img, "og_" + image_name)
+    img = img.astype(int)
+    if img is None:
+        print(img)
+        print("stopping compression")
+        return
+    img = alg_c.test_algorithm(img)
+    save_compressed_data(img, f"new_{image_name}")
+    img = alg_c.build_image(image_name)
+    save_image(img, image_name)
+
+
 
 def open_image(image_name: str):
     """
     Opens and returns the image.
 
-    :param image_name: String containing the file name of the image.
-    :return: None if failed, else the opened image
+    Args:
+        image_name (str): String containing the file name of the image.
+
+    Returns:
+        Optional[np.ndarray]: None if the image failed to open, else the opened image as a NumPy array.
+
     """
     print(f"Trying to open the image {image_name}...")
     try:
@@ -35,12 +52,6 @@ def open_image(image_name: str):
         img = Image.open("images/IN/"+image_name)
         # Convert image to RGB color mode
         img = img.convert("RGB")
-
-        # Check if the image has the correct size.
-        ''' Keeps breaking cus of weird resolution
-        if check_image(img) is None:
-            return None
-        '''
 
         width, height = img.size
         img_array = np.empty((height, width, 3), dtype=np.uint8)
@@ -84,4 +95,5 @@ def save_image(img: np.ndarray, image_name, mode="RGB", directory="images/OUT/")
 
 
 if __name__ == "__main__":
-    main()
+    # run_simple_algorithm()
+    run_complex_algorithm()
