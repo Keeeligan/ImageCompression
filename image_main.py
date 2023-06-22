@@ -29,10 +29,10 @@ def run_complex_algorithm(image_name:str = "logitech_mouse_1.png"):
         print("stopping compression")
         return
     img = alg_c.test_algorithm(img)
-    save_compressed_data(img, f"new_{image_name}")
-    img = alg_c.build_image(image_name)
-    save_image(img, image_name)
 
+    save_compressed_data(img, f"new_{image_name}")
+    # img = alg_c.build_image(image_name)
+    # save_image(img, image_name)
 
 
 def open_image(image_name: str):
@@ -72,7 +72,6 @@ def open_image(image_name: str):
     return img
 
 
-
 def save_compressed_data(img, name: str, directory="images/STORE/"):
     name = name.strip(".png")
     if type(img) == list:
@@ -85,6 +84,7 @@ def save_compressed_data(img, name: str, directory="images/STORE/"):
             pickle.dump(img, file)
 
         return
+
     np.save(f"{directory}{name}.npy", img)
     return
 

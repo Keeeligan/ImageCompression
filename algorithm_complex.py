@@ -17,35 +17,59 @@ quantization_table = np.array([
 
 
 def test_algorithm(img: np.ndarray):
-    height, width = img.shape[0], img.shape[1]
+    # height, width = img.shape[0], img.shape[1]
     img.astype(int)
     img = colour_space_conversion(img)
 
-
+    # Use chrominance downsampling
     lum, blue_chr, red_chr = chrominance_downsample(img)
 
-    # lum_dct = discrete_cosine_transform(lum)
-    blue_chr_dct = discrete_cosine_transform(blue_chr)
-    # red_chr_dct = discrete_cosine_transform(red_chr)
-    print(blue_chr_dct)
-    with open(f'images/STORE/test1.json', 'w') as f:
-        json.dump(blue_chr_dct, f)
+    # Apply DCT
+    lum_dct = discrete_cosine_transform(lum)
+    blue_chr_dct = np.round(discrete_cosine_transform(blue_chr)).astype(int)
+    red_chr_dct = discrete_cosine_transform(red_chr)
 
-    res=[]
-    return res
+    # Compress the DCT arrays with RLE
+    lum_rle = run_length_encoding(lum_dct)
+    blue_chr_rle = run_length_encoding(blue_chr_dct)
+    red_chr_rle = run_length_encoding(red_chr_dct)
 
+    # print(f"Lum length: {len(lum)}")
+    # print(f"Blue_chr length: {len(blue_chr)}")
+    # print(f"Red_chr length: {len(red_chr)}")
+    #
+    # print(f"Lum_dct length: {len(lum_dct)}")
+    # print(f"Blue_chr_dct length: {len(blue_chr_dct)}")
+    # print(f"Red_chr_dct length: {len(red_chr_dct)}")
+
+    print(f"Lum_rle length: {len(lum_rle)}")
+    print(f"Blue_chr_rle length: {len(blue_chr_rle)}")
+    print(f"Red_chr_rle length: {len(red_chr_rle)}")
+
+
+    # with open(f'images/STORE/test1.json', 'w') as f:
+    #     json.dump(blue_chr_rle, f)
+
+    return [lum_rle, blue_chr_rle, red_chr_rle]
 
 
 def build_image(image_name: str, directory="images/STORE/"):
 
     # Open the data
     image_name = image_name.strip(".png")
-    img = pd.read_pickle(f'{directory}ew_{image_name}.npy')
+    img = np.load(f'{directory}ew_{image_name}.npy')
 
-    # Convert the values back to RGB
-    img = colour_space_conversion(img)
+    # Run length decoding
+
+
+    # Dequantize and invert DCT
+
 
     # Resize the chrominance layers
+
+
+    # Convert the values back to RGB
+    img = colour_space_conversion(img, from_rgb=False)
 
     return img
 
@@ -102,6 +126,7 @@ def rgb_to_ycbcr(rgb: tuple):
     cb = (b - y) / (2 * (1 - 0.114))
     cr = (r - y) / (2 * (1 - 0.299))
     return round(y), round(cb), round(cr)
+
 
 def ycbcr_to_rgb(ycbcr: tuple):
     """
@@ -165,6 +190,40 @@ def chrominance_downsample(img: np.ndarray):
     return luminance, blue_chrominance, red_chrominance
 
 
+def chrominance_rescale(img:np.ndarray):
+    """
+    Rescales the chrominance channels of an image to 4 times the size.
+
+    Args:
+        img (np.ndarray): An input image represented as a NumPy array in YCbCr color space.
+            The image should have three channels: luminance (Y), blue-difference chrominance (Cb),
+            and red-difference chrominance (Cr).
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple containing the rescaled image channels in the same order:
+            luminance (Y), rescaled blue-difference chrominance (Cb_res), and rescaled red-difference chrominance (Cr_res).
+            The rescaling is performed by duplicating each pixel value in the Cb and Cr channels.
+    """
+    lum, cb, cr = img
+
+    cb_res = []
+    cr_res = []
+    for y in range(len(cb)):
+        cb_row = []
+        cr_row = []
+        for x in range(len(cr)):
+            cb_row.append(cb[y][x])
+            cb_row.append(cb[y][x])
+            cr_row.append(cb[y][x])
+            cr_row.append(cb[y][x])
+        cb_res.append(cb_row)
+        cb_res.append(cb_row)
+        cr_res.append(cr_row)
+        cr_res.append(cr_row)
+
+    return lum, cb_res, cr_res
+
+
 def discrete_cosine_transform(img: np.ndarray, block_size=8, quantization_table=None):
     """
     Applies the Discrete Cosine Transform (DCT) to the input image.
@@ -210,7 +269,6 @@ def discrete_cosine_transform(img: np.ndarray, block_size=8, quantization_table=
                 compressed_blocks.append(compressed_dct_block)
 
     return compressed_blocks
-
 
 
 def discrete_cosine_transform_reconstruct(img: np.ndarray, compressed_blocks, block_size=8, quantization_table=None):
@@ -316,6 +374,7 @@ def inv_dct(dct_block):
 
     return block
 
+
 def quantize_dct_block(dct_block, quantization_table):
     """
     Quantizes the given DCT block using the specified quantization table.
@@ -328,8 +387,8 @@ def quantize_dct_block(dct_block, quantization_table):
         np.ndarray: Quantized DCT block.
 
     """
-    # return np.round(dct_block / quantization_table)
-    return np.rint(dct_block / quantization_table).astype(int)
+    return np.round(dct_block / quantization_table).astype(int)
+    # return np.rint(dct_block / quantization_table).astype(int)
 
 
 def dequantize_dct_block(quantized_dct_block, quantization_table):
@@ -347,33 +406,36 @@ def dequantize_dct_block(quantized_dct_block, quantization_table):
     return quantized_dct_block * quantization_table
 
 
-def run_length_encoding(quantized_block):
+def run_length_encoding(q_blocks):
     """
     Applies run-length encoding (RLE) for each quantized block.
 
     Args:
-        quantized_block (np.ndarray): Quantized block as a 1D NumPy array.
+        q_blocks (np.ndarray): Quantized blocks as a 2D NumPy array.
 
     Returns:
         list: List of run-length pairs representing the compressed block.
 
     """
-    compressed_block = []
-    count = 0
-    current_value = quantized_block[0]
+    rle_blocks = []
 
-    for value in quantized_block:
-        if value == current_value:
-            count += 1
-        else:
-            compressed_block.append((count, current_value))
+    for q_block in q_blocks:
+        rle_block = []
+        for y in range(len(q_block)):
+            row = []
             count = 1
-            current_value = value
+            for x in range(len(q_block[y])-1):
+                if q_block[y][x] == q_block[y][x+1]:
+                    count += 1
+                else:
+                    row.append((int(q_block[y, x]), count))
+                    count = 1
 
-    compressed_block.append((count, current_value))
+            row.append((int(q_block[y, x]), count))
+            rle_block.append(row)
+        rle_blocks.append(rle_block)
 
-    return compressed_block
-
+    return rle_blocks
 
 
 def test():
@@ -387,7 +449,6 @@ def test():
     lst = np.array(lst)
     print(colour_space_conversion(lst))
     pass
-
 
 
 if __name__ == "__main__":
