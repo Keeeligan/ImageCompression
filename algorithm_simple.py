@@ -18,10 +18,17 @@ def test_algorithm(img: np.ndarray) -> np.ndarray:
 
 def colour_compress(img: np.ndarray):
     """
-    Compresses shifts all the pixel their RGB values down to the closest multiplication of four.
-    This allows fow the Run Length Encoding (RLE) algorithm to work better in trade for the depth of colour.
-    :param img:
-    :return:
+    Compresses the image by shifting all the RGB values of each pixel to the closest multiple of four.
+
+    This compression technique aims to improve the effectiveness of the Run Length Encoding (RLE) algorithm
+    at the cost of reducing the color depth.
+
+    Args:
+        img (np.ndarray): Input image as a NumPy array.
+
+    Returns:
+        np.ndarray: Compressed image as a NumPy array.
+
     """
     for y in range(img.shape[0]):
         for x in range(img.shape[1]):
@@ -34,9 +41,15 @@ def colour_compress(img: np.ndarray):
 
 def run_length_enc(img: np.ndarray) -> list:
     """
-    @TODO:
-    :param img:
-    :return:
+    Performs Run Length Encoding (RLE) on the image to compress its pixel data.
+
+    Args:
+        img (np.ndarray): Input image as a NumPy array.
+
+    Returns:
+        list: RLE-encoded representation of the image, where each pixel value is represented as a tuple
+        containing the RGB values and the count of consecutive occurrences.
+
     """
     img_rle = []
 
@@ -59,12 +72,16 @@ def run_length_enc(img: np.ndarray) -> list:
 
 def build_image(image_name: str, directory="images/STORE/"):
     """
-    Reverse RLE
+    Builds an image based on the Run Length Encoded (RLE) data.
 
-    @TODO
-    Builds the image
+    Args:
+        image_name (str): The name of the image without the file extension.
+        directory (str, optional): The directory where the RLE data is stored. Defaults to "images/STORE/".
+
+    Returns:
+        np.ndarray: The reconstructed image as a NumPy array.
+
     """
-
     # Open the data
     image_name = image_name.strip(".png")
     rle = pd.read_pickle(f'{directory}ew_{image_name}.pickle')
