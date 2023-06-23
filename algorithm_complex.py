@@ -19,16 +19,21 @@ quantization_table = np.array([
 def test_algorithm(img: np.ndarray):
     # height, width = img.shape[0], img.shape[1]
     img.astype(int)
+
+    print("Converting colour space...")
     img = colour_space_conversion(img)
 
+    print("Down sampling the chrominance channels...")
     # Use chrominance downsampling
     lum, blue_chr, red_chr = chrominance_downsample(img)
 
+    print("Starting DCT and quantization...")
     # Apply DCT
     lum_dct = discrete_cosine_transform(lum)
     blue_chr_dct = np.round(discrete_cosine_transform(blue_chr)).astype(int)
     red_chr_dct = discrete_cosine_transform(red_chr)
 
+    print("Compressing the data with RLE...")
     # Compress the DCT arrays with RLE
     lum_rle = run_length_encoding(lum_dct)
     blue_chr_rle = run_length_encoding(blue_chr_dct)
@@ -375,7 +380,7 @@ def inv_dct(dct_block):
     return block
 
 
-def quantize_dct_block(dct_block, quantization_table):
+def quantize_dct_block(dct_block):
     """
     Quantizes the given DCT block using the specified quantization table.
 
@@ -388,16 +393,14 @@ def quantize_dct_block(dct_block, quantization_table):
 
     """
     return np.round(dct_block / quantization_table).astype(int)
-    # return np.rint(dct_block / quantization_table).astype(int)
 
 
-def dequantize_dct_block(quantized_dct_block, quantization_table):
+def dequantize_dct_block(quantized_dct_block):
     """
     Dequantizes the given quantized DCT block using the specified quantization table.
 
     Args:
         quantized_dct_block (np.ndarray): Quantized DCT block as a 2D NumPy array.
-        quantization_table (np.ndarray): Quantization table as a 2D NumPy array.
 
     Returns:
         np.ndarray: Dequantized DCT block.
@@ -420,22 +423,43 @@ def run_length_encoding(q_blocks):
     rle_blocks = []
 
     for q_block in q_blocks:
+        q_block_list = q_block.flatten().tolist()
         rle_block = []
-        for y in range(len(q_block)):
-            row = []
-            count = 1
-            for x in range(len(q_block[y])-1):
-                if q_block[y][x] == q_block[y][x+1]:
-                    count += 1
-                else:
-                    row.append((int(q_block[y, x]), count))
-                    count = 1
+        count = 1
+        for i in range(len(q_block_list)-1):
+            if q_block_list[i] == q_block_list[i+1]:
+                count += 1
+            else:
+                rle_block.append((int(q_block_list[i]), count))
+                count = 1
 
-            row.append((int(q_block[y, x]), count))
-            rle_block.append(row)
+        rle_block.append((int(q_block_list[-1]), count))
         rle_blocks.append(rle_block)
 
     return rle_blocks
+
+
+def run_length_decoding(rle_blocks):
+    """
+    Decodes the run-length encoded blocks back to the original quantized blocks.
+
+    Args:
+        rle_blocks (list): List of run-length pairs representing the compressed block.
+
+    Returns:
+        np.ndarray: Decoded quantized blocks as a 2D NumPy array.
+
+    """
+    decoded_blocks = []
+
+    for rle_block in rle_blocks:
+        decoded_block = []
+        for value, count in rle_block:
+            decoded_block.extend([value] * count)
+        decoded_blocks.append(decoded_block)
+
+    return np.array(decoded_blocks)
+
 
 
 def test():
