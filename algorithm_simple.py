@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
+import json
+
 def test_algorithm(img: np.ndarray) -> np.ndarray:
     """
 

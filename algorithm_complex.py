@@ -75,8 +75,10 @@ def build_image(image_name: str, directory="images/STORE/"):
     # Convert the values back to RGB
     img = colour_space_conversion(img, from_rgb=False)
 
-    with open(f'images/STORE/test_aftconversion.json', 'w') as f:
-        json.dump(img.tolist(), f)
+    # with open(f'images/STORE/test_aftconversion.json', 'w') as f:
+    #     json.dump(img.tolist(), f)
+
+    print(f"img shape: {len(img)}x{len(img[0])}")
 
 
     return img
@@ -111,7 +113,7 @@ def colour_space_conversion(img:np.ndarray, from_rgb=True):
                 row.append(ycbcr_to_rgb(img[y, x]))
         res.append(row)
 
-    return np.array(res, dtype=int)
+    return np.array(res, dtype=np.uint8)
 
 
 '''
@@ -136,7 +138,19 @@ def rgb_to_ycbcr(rgb: tuple):
     cr = (r - y) / (2 * (1 - 0.299))
     return round(y), round(cb), round(cr)
 '''
+
+
 def rgb_to_ycbcr(rgb: tuple):
+    """
+    Converts the rbg values of a single pixel to the YCbCr colour space.
+    Source: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdprfx/b550d1b5-f7d9-4a0c-9141-b3dca9d7f525
+
+    Args:
+        rgb (Tuple[int, int, int]): Tuple with the RGB values of a pixel.
+
+    Returns:
+        Tuple[float, float, float]: Tuple with the YCbCr values of the pixel.
+    """
     r, g, b = rgb
 
     y = 0.299 * r + 0.587 * g + 0.114 * b
@@ -645,7 +659,7 @@ def run_length_decoding(rle_blocks, block_size=8):
 
 
 def test():
-    ycbcr = rgb_to_ycbcr((255, 255, 255))
+    ycbcr = rgb_to_ycbcr((255, 0, 0))
     print(ycbcr)
     rgb = ycbcr_to_rgb(ycbcr)
     print(rgb)

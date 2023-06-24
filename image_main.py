@@ -7,7 +7,7 @@ import pickle
 
 from pprint import pprint
 
-def run_simple_algorithm(image_name:str = "logitech_mouse_1.png" ):
+def run_simple_algorithm(image_name:str = "logitech_mouse_1_ds.png" ):
     img = open_image(image_name)
     save_compressed_data(img, "og_"+image_name)
     if img is None:
@@ -17,22 +17,36 @@ def run_simple_algorithm(image_name:str = "logitech_mouse_1.png" ):
     img = alg_s.test_algorithm(img)
     save_compressed_data(img, f"new_{image_name}")
     img = alg_s.build_image(image_name)
+
+    print(type(img))
+    print(img)
+
+    with open(f'images/STORE/test_simpleout.json', 'w') as f:
+        json.dump(img.tolist(), f)
+
+    print(f"img shape: {len(img)}x{len(img[0])}")
+
     save_image(img, image_name)
 
 
-def run_complex_algorithm(image_name:str = "logitech_mouse_1.png"):
-    # img = open_image(image_name)
-    # save_compressed_data(img, "og_" + image_name)
-    # img = img.astype(int)
-    # if img is None:
-    #     print(img)
-    #     print("stopping compression")
-    #     return
-    # img = alg_c.test_algorithm(img)
-    #
-    # save_compressed_data(img, f"new_{image_name}")
+def run_complex_algorithm(image_name:str = "logitech_mouse_1_ds.png"):
+    img = open_image(image_name)
+    save_compressed_data(img, "og_" + image_name)
+    img = img.astype(int)
+    if img is None:
+        print(img)
+        print("stopping compression")
+        return
+    img = alg_c.test_algorithm(img)
+
+    save_compressed_data(img, f"new_{image_name}")
 
     img = alg_c.build_image(image_name)
+
+    print(type(img))
+    print(img)
+    print(f"img shape: {len(img)}x{len(img[0])}")
+
     save_image(img, image_name)
 
 
@@ -98,3 +112,7 @@ def save_image(img: np.ndarray, image_name, mode="RGB", directory="images/OUT/")
 if __name__ == "__main__":
     # run_simple_algorithm()
     run_complex_algorithm()
+    # save_image(np.array(
+    #     [[[255, 255, 255], [255, 255, 255]],
+    #      [[255, 255, 255], [255, 255, 255]]], dtype=np.uint8), "test_small.png"
+    # )
