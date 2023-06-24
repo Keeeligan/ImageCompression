@@ -21,18 +21,19 @@ def run_simple_algorithm(image_name:str = "logitech_mouse_1.png" ):
 
 
 def run_complex_algorithm(image_name:str = "logitech_mouse_1.png"):
-    img = open_image(image_name)
-    save_compressed_data(img, "og_" + image_name)
-    img = img.astype(int)
-    if img is None:
-        print(img)
-        print("stopping compression")
-        return
-    img = alg_c.test_algorithm(img)
+    # img = open_image(image_name)
+    # save_compressed_data(img, "og_" + image_name)
+    # img = img.astype(int)
+    # if img is None:
+    #     print(img)
+    #     print("stopping compression")
+    #     return
+    # img = alg_c.test_algorithm(img)
+    #
+    # save_compressed_data(img, f"new_{image_name}")
 
-    save_compressed_data(img, f"new_{image_name}")
-    # img = alg_c.build_image(image_name)
-    # save_image(img, image_name)
+    img = alg_c.build_image(image_name)
+    save_image(img, image_name)
 
 
 def open_image(image_name: str):
