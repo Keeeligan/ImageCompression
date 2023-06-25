@@ -16,7 +16,7 @@ def run_app():
     exit = False
 
     # Background colour
-    canvas.fill(color=(240, 240, 240))
+    canvas.fill(color=(20, 20, 22))
 
     # Set the font
     font = pg.font.Font(None, 28)
@@ -51,12 +51,6 @@ def run_app():
     selected_out_img = ""
     update_out_image = False
 
-    # Check for the input image files
-    input_files = [f for f in os.listdir("images/IN/") if f.endswith(".png")]
-
-    # Check for the data files
-    data_files = [f for f in os.listdir("images/STORE/") if f.endswith(".pickle")]
-
     # Draw the images on the canvas
     pg.draw.rect(canvas, (150, 150, 150), img_in)
     pg.draw.rect(canvas, (150, 150, 150), img_out)
@@ -64,6 +58,12 @@ def run_app():
 
     # Start running
     while not exit:
+        # Check for the input image files
+        input_files = [f for f in os.listdir("images/IN/") if f.endswith(".png")]
+
+        # Check for the data files
+        data_files = [f for f in os.listdir("images/STORE/") if f.endswith(".pickle")]
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 exit = True
@@ -83,17 +83,21 @@ def run_app():
                         i_main.build_alg_s(selected_out_img)
                         update_out_image = True
 
-
-
                 if c_compress_button.collidepoint(event.pos):
                     if selected_in_img != "":
                         print("Starting complex compression")
                         print(selected_in_img)
-                        i_main.build_alg_c(selected_in_img)
-                        update_out_image = True
+                        i_main.compress_alg_c(selected_in_img)
 
                 if c_build_button.collidepoint(event.pos):
-                    print("Starting complex building")
+                    # Only build the data if it was produced with the right algorithm
+                    if selected_out_img != "" and selected_out_img[len(selected_out_img) - len(".pickle") - len("simp"):len(selected_out_img) - len(".pickle")] == "comp":
+                        print("Starting complex building")
+                        print(selected_out_img)
+                        i_main.build_alg_c(selected_out_img)
+                        update_out_image = True
+
+
 
                 # Check if a click occurred on an input file name
                 for i, file in enumerate(input_files):
@@ -127,8 +131,6 @@ def run_app():
         canvas.blit(text_c_comp, text_c_comp_rect)
         pg.draw.rect(canvas, (200, 200, 200), c_build_button)
         canvas.blit(text_c_build, text_c_build_rect)
-
-
 
         # Draw the input file names
         text_y = 500  # Initial y-coordinate for text

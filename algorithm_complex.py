@@ -45,8 +45,8 @@ def test_algorithm(img: np.ndarray):
 def build_image(image_name: str, directory="images/STORE/"):
 
     # Open the data
-    image_name = image_name.strip(".png")
-    rle = pd.read_pickle(f'{directory}ew_{image_name}.pickle')
+    # image_name = image_name.strip(".png")
+    rle = pd.read_pickle(f'{directory}{image_name}')
 
     print("Decoding the RLE...")
     # Run length decoding

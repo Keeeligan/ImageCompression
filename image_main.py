@@ -5,8 +5,6 @@ import numpy as np
 import json
 import pickle
 
-from pprint import pprint
-
 
 def compress_alg_s(image_name:str = "logitech_mouse_1_ds.png" ):
     img = open_image(image_name)
@@ -51,8 +49,9 @@ def build_alg_c(image_name:str = "logitech_mouse_1_ds.png"):
     print(img)
     print(f"img shape: {len(img)}x{len(img[0])}")
 
-    image_name.strip(".png")
-    save_image(img, f"{image_name}_comp")
+    print("1:", image_name)
+    image_name = image_name[:len(image_name)-len(".pickle")]
+    save_image(img, f"{image_name}")
 
 
 def open_image(image_name: str):
