@@ -4,12 +4,11 @@ from PIL import Image
 
 import json
 
-def test_algorithm(img: np.ndarray) -> np.ndarray:
+def run_simple_algorithm(img: np.ndarray) -> np.ndarray:
     """
 
     :param img: np.ndarray with all the pixel values.
     """
-
 
     img = colour_compress(img)
     img = run_length_enc(img)
@@ -83,23 +82,27 @@ def build_image(image_name: str, directory="images/STORE/"):
         np.ndarray: The reconstructed image as a NumPy array.
 
     """
+    print("1:", image_name)
     # Open the data
-    image_name = image_name.strip(".png")
-    rle = pd.read_pickle(f'{directory}ew_{image_name}.pickle')
+    # image_name = image_name[::len(".png")]
+    print("2: " + image_name)
+    rle = pd.read_pickle(f'{directory}{image_name}')
 
     # Initialize the array with the original resolution
-    img = Image.open(f"images/IN/{image_name}.png")
-    width, height = img.size
-    res = np.empty(shape=(height, width, 3), dtype=np.uint8)
+    # img = Image.open(f"images/IN/{image_name}.png")
+    # width, height = img.size
+    # res = np.empty(shape=(height, width, 3), dtype=np.uint8)
+    res = []
     for y in range(len(rle)):
         row = []
         for x in range(len(rle[y])):
             for i in range(rle[y][x][1]):
                 row.append(rle[y][x][0])
-        res[y] = row
-    return res
+        res.append(row)
+    return np.array(res, dtype=np.uint8)
 
 
 
 if __name__ == "__main__":
-    test_algorithm()
+    # test_algorithm()
+    pass

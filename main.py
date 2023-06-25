@@ -1,7 +1,7 @@
-
+import gui
 
 def main():
-    pass
+    gui.run_app()
 
 
 if __name__ == "__main__":
