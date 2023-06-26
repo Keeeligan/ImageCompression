@@ -4,6 +4,7 @@ import pandas as pd
 
 import json
 
+
 quantization_table = np.array([
     [4,  3,  4,  4,  4,  6,  11,  15],
     [3,  3,  3,  4,  5,  8,  14,  19],
@@ -318,15 +319,20 @@ def discrete_cosine_transform(img: np.ndarray, block_size=8):
     num_blocks_h = height // block_size
     num_blocks_w = width // block_size
 
-
+    flag = True
     print(f"{num_blocks_w * num_blocks_h} blocks to compute...")
     # Compress each block
     compressed_blocks = np.empty((num_blocks_h, num_blocks_w, block_size, block_size), dtype=int)
     for y in range(num_blocks_h):
         for x in range(num_blocks_w):
+            np.set_printoptions(suppress=True)
             # Take the 8x8 block and perform DCT on that block
             block = img[y * block_size:(y + 1) * block_size, x * block_size:(x + 1) * block_size]
+            # if flag:
+            #     print("Block\n", block)
             dct_block = dct(block)
+            if flag:
+                print("block after dct:\n", dct_block)
 
             # Determine the number of coefficients to keep
             num_coeffs = int(dct_block.size * compression_ratio)
@@ -340,6 +346,10 @@ def discrete_cosine_transform(img: np.ndarray, block_size=8):
             # Apply quantization
             quantized_dct_block = quantize_dct_block(compressed_dct_block)
             compressed_blocks[y, x] = quantized_dct_block
+
+            if flag:
+                print("block after quantization:\n", quantized_dct_block)
+                flag = False
 
     return compressed_blocks
 
@@ -399,6 +409,8 @@ def inv_discrete_cosine_transform(compressed_blocks, block_size=8):
         np.ndarray: Reconstructed decompressed image.
 
     """
+    flag = True
+
     # Set the compression ratio
     compression_ratio = 0.1  # Keep only the top 10% of coefficients
 
@@ -415,12 +427,21 @@ def inv_discrete_cosine_transform(compressed_blocks, block_size=8):
     for y in range(num_blocks_h):
         for x in range(num_blocks_w):
             quantized_dct_block = compressed_blocks[y, x]
+            if flag:
+                print("quantized dct_block:\n", quantized_dct_block)
 
             # Apply dequantization
             decompressed_dct_block = dequantize_dct_block(quantized_dct_block)
 
+            if flag:
+                print("dequantized dct_block:\n", decompressed_dct_block)
+
             # Perform IDCT on the block
             idct_block = inv_dct(decompressed_dct_block)
+
+            if flag:
+                print("IDCT block:\n", idct_block)
+                flag = False
 
             # Place the IDCT block in the decompressed image
             decompressed_image[y * block_size:(y + 1) * block_size, x * block_size:(x + 1) * block_size] = idct_block
@@ -459,39 +480,42 @@ def dct(block):
 
 
 def dct(block):
+    # block = block-128
+    block = block/255
     N = block.shape[0]
     M = block.shape[1]
-    alpha = np.ones_like(block) * np.sqrt(2 / N)
-    alpha[0, :] = np.sqrt(1 / N)
+    alpha_pq = np.ones_like(block) * np.sqrt(2 / M)
+    alpha_pq[0, :] = 1 / np.sqrt(M)
+    alpha_pq[:, 0] = 1 / np.sqrt(M)
 
     dct_block = np.zeros_like(block, dtype=float)
 
     # Precompute constants
-    constant_1 = np.pi / (2 * N)
-    constant_2 = np.pi / (2 * M)
+    constant_N = np.pi / (2 * N)
+    constant_M = np.pi / (2 * M)
 
-    for u in range(N):
-        for v in range(M):
-            constant_3 = (2 * u + 1) * constant_1
-            constant_4 = (2 * v + 1) * constant_2
+    for n in range(N):
+        for m in range(M):
+            constant_n = (2 * n + 1) * constant_N
+            constant_m = (2 * m + 1) * constant_M
 
-            for i in range(N):
-                for j in range(M):
+            for q in range(N):
+                for p in range(M):
                     # Apply precomputed constants
-                    cos_i = np.cos(constant_3 * i)
-                    cos_j = np.cos(constant_4 * j)
+                    cos_q = np.cos(constant_n * q)
+                    cos_p = np.cos(constant_m * p)
 
-                    dct_block[u, v] += block[i, j] * cos_i * cos_j
+                    dct_block[q, p] += block[n, m] * cos_p * cos_q
 
-            # Multiply with alpha
-            dct_block[u, v] *= alpha[u, v]
+    # Multiply with alpha
+    dct_block[n, m] *= alpha_pq[n, m]
 
     return dct_block
 
 
 def inv_dct(dct_block):
     """
-    Applies the inverse Discrete Cosine Transform (IDCT) to a given DCT block.
+    Applies the inverse Discrete Cosine Transform (IDCT or DCT-III) to a given DCT block.
 
     Args:
         dct_block (np.ndarray): Compressed DCT block as a 2D NumPy array.
@@ -502,31 +526,34 @@ def inv_dct(dct_block):
     """
     N = dct_block.shape[0]
     M = dct_block.shape[1]
-    alpha = np.ones_like(dct_block) * np.sqrt(2 / N)
-    alpha[0, :] = np.sqrt(1 / N)
+    alpha_pq = np.ones_like(dct_block) * np.sqrt(2 / M)
+    alpha_pq[0, :] = 1 / np.sqrt(N)
+    alpha_pq[:, 0] = 1 / np.sqrt(M)
 
     block = np.zeros_like(dct_block, dtype=float)
 
-    # Precompute constants
-    constant_1 = np.pi / (2 * N)
-    constant_2 = np.pi / (2 * M)
+    for q in range(N):
+        for p in range(M):
+            for n in range(N):
+                for m in range(M):
+                    cos_p = np.cos((np.pi * (2 * m + 1) * p) / 2 * M)
+                    cos_q = np.cos((np.pi * (2 * n + 1) * q) / 2 * N)
+                    if p == 0:
+                        alpha_p = 1/np.sqrt(M)
+                    else:
+                        alpha_p = np.sqrt(2/M)
 
-    for i in range(N):
-        for j in range(M):
-            constant_3 = (2 * i + 1) * constant_1
-            constant_4 = (2 * j + 1) * constant_2
+                    if q == 0:
+                        alpha_q = 1/np.sqrt(N)
+                    else:
+                        alpha_q = np.sqrt(2/N)
 
-            for u in range(N):
-                for v in range(M):
-                    # Apply precomputed constants
-                    cos_u = np.cos(constant_3 * u)
-                    cos_v = np.cos(constant_4 * v)
-                    block[i, j] += alpha[u, v] * dct_block[u, v] * cos_u * cos_v
+                    # block[n, m] += alpha_pq[q, p] * dct_block[q, p] * cos_p * cos_q
+                    block[n, m] += alpha_p * alpha_q * dct_block[q, p] * cos_p * cos_q
 
     # Multiply with alpha
-    block *= alpha
-
     return block
+
 
 
 def quantize_dct_block(dct_block):
@@ -600,6 +627,8 @@ def run_length_encoding(q_blocks):
         list: List of run-length pairs representing the compressed block.
     """
 
+    flag = True
+
     rle_blocks = []
     # For each row
     for q_block_row in q_blocks:
@@ -608,6 +637,10 @@ def run_length_encoding(q_blocks):
         # For each block within that row
         for block in q_block_row:
             # Flatten the block and use rle
+            # if flag:
+            #     print(block)
+            #     flag= False
+
             rle_block = []
             block = block.flatten()
             count = 1
@@ -659,10 +692,18 @@ def run_length_decoding(rle_blocks, block_size=8):
 
 
 def test():
-    ycbcr = rgb_to_ycbcr((255, 0, 0))
-    print(ycbcr)
-    rgb = ycbcr_to_rgb(ycbcr)
-    print(rgb)
+    n = [[16, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0]]
+
+    m = np.array([[n,n],
+                  [n,n]])
+    print("Total img:\n", inv_discrete_cosine_transform(m))
     pass
 
 

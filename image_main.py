@@ -46,7 +46,7 @@ def build_alg_c(image_name:str = "logitech_mouse_1_ds.png"):
     img = alg_c.build_image(image_name)
 
     print(type(img))
-    print(img)
+    # print(img)
     print(f"img shape: {len(img)}x{len(img[0])}")
 
     print("1:", image_name)
@@ -114,10 +114,6 @@ def save_image(img: np.ndarray, image_name, mode="RGB", directory="images/OUT/")
 
 
 if __name__ == "__main__":
-    # run_simple_algorithm()
-    # run_complex_algorithm()
-    # save_image(np.array(
-    #     [[[255, 255, 255], [255, 255, 255]],
-    #      [[255, 255, 255], [255, 255, 255]]], dtype=np.uint8), "test_small.png"
-    # )
+    compress_alg_c("white_test.png")
+    build_alg_c("new_white_test_comp.pickle")
     pass
