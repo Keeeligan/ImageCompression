@@ -1,8 +1,5 @@
 import numpy as np
 import pandas as pd
-from PIL import Image
-
-import json
 
 def run_simple_algorithm(img: np.ndarray) -> np.ndarray:
     """

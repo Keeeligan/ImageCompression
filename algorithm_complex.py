@@ -1,9 +1,5 @@
-from PIL import Image
 import numpy as np
 import pandas as pd
-
-import json
-
 
 quantization_table = np.array([
     [4,  3,  4,  4,  4,  6,  11,  15],
@@ -69,15 +65,9 @@ def build_image(image_name: str, directory="images/STORE/"):
     # Resize the chrominance layers
     img = chrominance_rescale(lum, blue_chr, red_chr)
 
-    with open(f'images/STORE/test_img.json', 'w') as f:
-        json.dump(lum_dct.tolist(), f)
-
     print("Converting the YCbCr values back to RGB...")
     # Convert the values back to RGB
     img = colour_space_conversion(img, from_rgb=False)
-
-    # with open(f'images/STORE/test_aftconversion.json', 'w') as f:
-    #     json.dump(img.tolist(), f)
 
     print(f"img shape: {len(img)}x{len(img[0])}")
 
@@ -598,8 +588,6 @@ def run_length_encoding(q_blocks):
 
     """
     rle_blocks = []
-    with open(f'images/STORE/test1.json', 'w') as f:
-        json.dump(q_blocks.copy(), f)
 
     for q_block in q_blocks:
         q_block_list = q_block.flatten().tolist()

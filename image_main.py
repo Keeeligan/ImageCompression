@@ -2,7 +2,6 @@ from PIL import Image
 import algorithm_simple as alg_s
 import algorithm_complex as alg_c
 import numpy as np
-import json
 import pickle
 
 
