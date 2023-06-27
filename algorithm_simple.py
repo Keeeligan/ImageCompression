@@ -81,14 +81,10 @@ def build_image(image_name: str, directory="images/STORE/"):
     """
     print("1:", image_name)
     # Open the data
-    # image_name = image_name[::len(".png")]
     print("2: " + image_name)
     rle = pd.read_pickle(f'{directory}{image_name}')
 
     # Initialize the array with the original resolution
-    # img = Image.open(f"images/IN/{image_name}.png")
-    # width, height = img.size
-    # res = np.empty(shape=(height, width, 3), dtype=np.uint8)
     res = []
     for y in range(len(rle)):
         row = []
