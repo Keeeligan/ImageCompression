@@ -320,6 +320,7 @@ def discrete_cosine_transform(img: np.ndarray, block_size=8):
             block = img[y * block_size:(y + 1) * block_size, x * block_size:(x + 1) * block_size]
             # if flag:
             #     print("Block\n", block)
+            print(type(block))
             dct_block = dct(block)
             if flag:
                 print("block after dct:\n", dct_block)
@@ -470,7 +471,19 @@ def dct(block):
 
 
 def dct(block):
+    """
+    Applies the Discrete Cosine Transform (DCT) to a given block.
+
+    Args:
+        block (np.ndarray): Input block as a 2D NumPy array.
+
+    Returns:
+        np.ndarray: Compressed DCT block.
+
+    """
+    block.astype(float)
     # block = block-128
+    print("block:\n")
     block = block/255
     N = block.shape[0]
     M = block.shape[1]
@@ -499,7 +512,7 @@ def dct(block):
 
     # Multiply with alpha
     dct_block[n, m] *= alpha_pq[n, m]
-
+    dct_block = np.round(dct_block)
     return dct_block
 
 
@@ -614,9 +627,6 @@ def run_length_encoding(q_blocks):
     Returns:
         list: List of run-length pairs representing the compressed block.
     """
-
-    flag = True
-
     rle_blocks = []
     # For each row
     for q_block_row in q_blocks:
@@ -680,18 +690,31 @@ def run_length_decoding(rle_blocks, block_size=8):
 
 
 def test():
-    n = [[16, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0]]
+    n_row= [255., 255., 255., 255., 255., 255., 255., 255.]
+    n = np.array([n_row,
+        n_row,
+        n_row,
+        n_row,
+        n_row,
+        n_row,
+        n_row,
+        n_row], dtype=float)
 
-    m = np.array([[n,n],
-                  [n,n]])
-    print("Total img:\n", inv_discrete_cosine_transform(m))
+    print(dct(n))
+
+
+    # n = [[16, 0, 0, 0, 0, 0, 0, 0],
+    #     [0, 0, 0, 0, 0, 0, 0, 0],
+    #     [0, 0, 0, 0, 0, 0, 0, 0],
+    #     [0, 0, 0, 0, 0, 0, 0, 0],
+    #     [0, 0, 0, 0, 0, 0, 0, 0],
+    #     [0, 0, 0, 0, 0, 0, 0, 0],
+    #     [0, 0, 0, 0, 0, 0, 0, 0],
+    #     [0, 0, 0, 0, 0, 0, 0, 0]]
+    #
+    # m = np.array([[n,n],
+    #               [n,n]])
+    # print("Total img:\n", inv_discrete_cosine_transform(m))
     pass
 
 
