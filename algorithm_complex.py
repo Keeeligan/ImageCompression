@@ -107,30 +107,6 @@ def colour_space_conversion(img:np.ndarray, from_rgb=True):
     return np.array(res, dtype=np.uint8)
 
 
-'''
-def rgb_to_ycbcr(rgb: tuple):
-    """
-    Converts the rbg values of a single pixel to the YCbCr colour space.
-    Source: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdprfx/b550d1b5-f7d9-4a0c-9141-b3dca9d7f525
-
-    Args:
-        rgb (Tuple[int, int, int]): Tuple with the RGB values of a pixel.
-
-    Returns:
-        Tuple[float, float, float]: Tuple with the YCbCr values of the pixel.
-    """
-
-    # Shift the RGB values down by 128.
-    r, g, b = [max(min(x, 127), -128) for x in rgb]
-
-    # Create the YCbCr values based on the rgb values of the image.
-    y = 0.299 * r + 0.587 * g + 0.114 * b
-    cb = (b - y) / (2 * (1 - 0.114))
-    cr = (r - y) / (2 * (1 - 0.299))
-    return round(y), round(cb), round(cr)
-'''
-
-
 def rgb_to_ycbcr(rgb: tuple):
     """
     Converts the rbg values of a single pixel to the YCbCr colour space.
@@ -206,56 +182,6 @@ def chrominance_downsample(img: np.ndarray):
 
     return luminance, blue_chrominance, red_chrominance
 
-
-'''
-def chrominance_rescale(lum, cb, cr):
-    """
-    Rescales the chrominance channels of an image to 4 times the size.
-
-    Args:
-        img (np.ndarray): An input image represented as a NumPy array in YCbCr color space.
-            The image should have three channels: luminance (Y), blue-difference chrominance (Cb),
-            and red-difference chrominance (Cr).
-
-    Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple containing the rescaled image channels in the same order:
-            luminance (Y), rescaled blue-difference chrominance (Cb_res), and rescaled red-difference chrominance (Cr_res).
-            The rescaling is performed by duplicating each pixel value in the Cb and Cr channels.
-    """
-    img = np.empty(shape=(len(lum), len(lum[0]), 3), dtype=np.uint8)
-
-    # Rescale the 2 chrominance channels to the correct size
-    cb_res = []
-    cr_res = []
-    for y in range(len(cb)):
-        cb_row = []
-        cr_row = []
-        for x in range(len(cb[y])):
-            cb_row.append(cb[y][x])
-            cb_row.append(cb[y][x])
-            cr_row.append(cb[y][x])
-            cr_row.append(cb[y][x])
-        cb_res.append(cb_row)
-        cb_res.append(cb_row)
-        cr_res.append(cr_row)
-        cr_res.append(cr_row)
-
-    print(f"Lum shape: {len(lum)}x{len(lum[0])}")
-    print(f"Cb_res shape: {len(cb_res)}x{len(cb_res[0])}")
-    print(f"Cr_res shape: {len(cr_res)}x{len(cr_res[0])}")
-
-    print(f"Cb Shape: {len(cb)}x{len(cb[0])}")
-    print(f"Cr Shape: {len(cr)}x{len(cr[0])}")
-
-    # Fill the channels
-    for y in range(len(cb_res)):
-        for x in range(len(cb_res[y])):
-            img[y, x][0] = lum[y, x]
-            img[y, x][1] = cb_res[y][x]
-            img[y, x][2] = cr_res[y][x]
-
-    return img
-'''
 
 def chrominance_rescale(lum, cb, cr):
     """
@@ -345,49 +271,6 @@ def discrete_cosine_transform(img: np.ndarray, block_size=8):
     return compressed_blocks
 
 
-'''
-def discrete_cosine_transform_reconstruct(compressed_blocks, block_size=8):
-    """
-    Reconstructs the compressed image using the compressed DCT blocks.
-
-    Args:
-        compressed_blocks (list): List of compressed DCT blocks.
-        block_size (int, optional): Size of the blocks used for compression. Default is 8.
-
-    Returns:
-        np.ndarray: Reconstructed image.
-
-    """
-    # Determine the dimensions of the reconstructed image
-    num_blocks_h = len(compressed_blocks)
-    num_blocks_w = len(compressed_blocks[0])
-    height = num_blocks_h * block_size
-    width = num_blocks_w * block_size
-
-    # Reconstruct the image block by block
-    reconstructed_img = np.zeros((height, width))
-    print(f"{num_blocks_w*num_blocks_h} blocks to reconstruct...")
-
-    for i in range(num_blocks_h):
-        for j in range(num_blocks_w):
-
-            # Get the compressed DCT block
-            compressed_dct_block = compressed_blocks[i][j]
-
-            # Apply dequantization
-            quantized_dct_block = dequantize_dct_block(compressed_dct_block)
-            compressed_dct_block = quantized_dct_block
-
-            # Reconstruct the block by applying the inverse DCT
-            reconstructed_block = inv_dct(compressed_dct_block)
-
-            # Place the reconstructed block in the image
-            start_i = i * block_size
-            start_j = j * block_size
-            reconstructed_img[start_i:start_i + block_size, start_j:start_j + block_size] = reconstructed_block
-
-    return reconstructed_img
-'''
 def inv_discrete_cosine_transform(compressed_blocks, block_size=8):
     """
     Applies the inverse Discrete Cosine Transform (IDCT) to the compressed blocks for image decompression.
@@ -401,9 +284,6 @@ def inv_discrete_cosine_transform(compressed_blocks, block_size=8):
 
     """
     flag = True
-
-    # Set the compression ratio
-    compression_ratio = 0.1  # Keep only the top 10% of coefficients
 
     # Compute the dimensions of the decompressed image
     num_blocks_h, num_blocks_w = compressed_blocks.shape[:2]
@@ -440,7 +320,6 @@ def inv_discrete_cosine_transform(compressed_blocks, block_size=8):
     return decompressed_image
 
 
-'''
 def dct(block):
     """
     Applies the Discrete Cosine Transform (DCT) to a given block.
@@ -452,44 +331,12 @@ def dct(block):
         np.ndarray: Compressed DCT block.
 
     """
-    N = block.shape[0]
-    M = block.shape[1]
-    alpha = np.ones_like(block) * np.sqrt(2/N)
-    alpha[0, :] = np.sqrt(1/N)
-
-    dct_block = np.zeros_like(block, dtype=float)
-
-    for u in range(N):
-        for v in range(M):
-            for i in range(N):
-                for j in range(M):
-                    dct_block[u, v] += block[i, j] * np.cos((2*i + 1) * u * np.pi / (2*N)) * np.cos((2*j + 1) * v * np.pi / (2*M))
-            dct_block[u, v] *= alpha[u, v]
-
-    return dct_block
-'''
-
-
-def dct(block):
-    """
-    Applies the Discrete Cosine Transform (DCT) to a given block.
-
-    Args:
-        block (np.ndarray): Input block as a 2D NumPy array.
-
-    Returns:
-        np.ndarray: Compressed DCT block.
-
-    """
-    block.astype(float)
-    # block = block-128
-    print("block:\n")
     block = block/255
     N = block.shape[0]
     M = block.shape[1]
     alpha_pq = np.ones_like(block) * np.sqrt(2 / M)
     alpha_pq[0, :] = 1 / np.sqrt(M)
-    alpha_pq[:, 0] = 1 / np.sqrt(M)
+    alpha_pq[:, 0] = 1 / np.sqrt(N)
 
     dct_block = np.zeros_like(block, dtype=float)
 
@@ -504,14 +351,17 @@ def dct(block):
 
             for q in range(N):
                 for p in range(M):
+
                     # Apply precomputed constants
                     cos_q = np.cos(constant_n * q)
                     cos_p = np.cos(constant_m * p)
 
+                    # dct_block[q, p] += block[n, m] * cos_p * cos_q * alpha_p * alpha_q
                     dct_block[q, p] += block[n, m] * cos_p * cos_q
 
     # Multiply with alpha
-    dct_block[n, m] *= alpha_pq[n, m]
+    dct_block *= alpha_pq
+    print("alpha_pq:\n",alpha_pq)
     dct_block = np.round(dct_block)
     return dct_block
 
@@ -529,9 +379,10 @@ def inv_dct(dct_block):
     """
     N = dct_block.shape[0]
     M = dct_block.shape[1]
+
     alpha_pq = np.ones_like(dct_block) * np.sqrt(2 / M)
-    alpha_pq[0, :] = 1 / np.sqrt(N)
-    alpha_pq[:, 0] = 1 / np.sqrt(M)
+    alpha_pq[0, :] = 1 / np.sqrt(M)
+    alpha_pq[:, 0] = 1 / np.sqrt(N)
 
     block = np.zeros_like(dct_block, dtype=float)
 
@@ -539,22 +390,27 @@ def inv_dct(dct_block):
         for p in range(M):
             for n in range(N):
                 for m in range(M):
-                    cos_p = np.cos((np.pi * (2 * m + 1) * p) / 2 * M)
-                    cos_q = np.cos((np.pi * (2 * n + 1) * q) / 2 * N)
-                    if p == 0:
-                        alpha_p = 1/np.sqrt(M)
-                    else:
-                        alpha_p = np.sqrt(2/M)
+                    cos_p = np.cos((np.pi * (2 * m + 1) * p) / (2 * M))
+                    cos_q = np.cos((np.pi * (2 * n + 1) * q) / (2 * N))
+                    # if p == 0:
+                    #     alpha_p = 1/np.sqrt(M)
+                    # else:
+                    #     alpha_p = np.sqrt(2/M)
+                    #
+                    # if q == 0:
+                    #     alpha_q = 1/np.sqrt(N)
+                    # else:
+                    #     alpha_q = np.sqrt(2/N)
 
-                    if q == 0:
-                        alpha_q = 1/np.sqrt(N)
-                    else:
-                        alpha_q = np.sqrt(2/N)
-
-                    # block[n, m] += alpha_pq[q, p] * dct_block[q, p] * cos_p * cos_q
-                    block[n, m] += alpha_p * alpha_q * dct_block[q, p] * cos_p * cos_q
+                    # block[n, m] += alpha_p * alpha_q * dct_block[q, p] * cos_p * cos_q
+                    block[n, m] += dct_block[q, p] * cos_p * cos_q
 
     # Multiply with alpha
+    block *= alpha_pq
+    print("amax:\n", np.amax(block))
+    if np.amax(block) != 0:
+        block /= np.amax(block)
+    block *= 255
     return block
 
 
@@ -565,7 +421,6 @@ def quantize_dct_block(dct_block):
 
     Args:
         dct_block (np.ndarray): DCT block as a 2D NumPy array.
-        quantization_table (np.ndarray): Quantization table as a 2D NumPy array.
 
     Returns:
         np.ndarray: Quantized DCT block.
@@ -588,36 +443,6 @@ def dequantize_dct_block(quantized_dct_block):
     return quantized_dct_block * quantization_table
 
 
-'''
-def run_length_encoding(q_blocks):
-    """
-    Applies run-length encoding (RLE) for each quantized block.
-
-    Args:
-        q_blocks (np.ndarray): Quantized blocks as a 2D NumPy array.
-
-    Returns:
-        list: List of run-length pairs representing the compressed block.
-
-    """
-    rle_blocks = []
-
-    for q_block in q_blocks:
-        q_block_list = q_block.flatten().tolist()
-        rle_block = []
-        count = 1
-        for i in range(len(q_block_list)-1):
-            if q_block_list[i] == q_block_list[i+1]:
-                count += 1
-            else:
-                rle_block.append((int(q_block_list[i]), count))
-                count = 1
-
-        rle_block.append((int(q_block_list[-1]), count))
-        rle_blocks.append(rle_block)
-
-    return rle_blocks
-'''
 
 def run_length_encoding(q_blocks):
     """
@@ -635,10 +460,6 @@ def run_length_encoding(q_blocks):
         # For each block within that row
         for block in q_block_row:
             # Flatten the block and use rle
-            # if flag:
-            #     print(block)
-            #     flag= False
-
             rle_block = []
             block = block.flatten()
             count = 1
@@ -690,7 +511,7 @@ def run_length_decoding(rle_blocks, block_size=8):
 
 
 def test():
-    n_row= [255., 255., 255., 255., 255., 255., 255., 255.]
+    n_row = [255., 0., 0., 255., 255., 255., 255., 255.]
     n = np.array([n_row,
         n_row,
         n_row,
@@ -700,10 +521,14 @@ def test():
         n_row,
         n_row], dtype=float)
 
-    print(dct(n))
+    q_dct = quantize_dct_block(dct(n))
+    print("quantized block:\n", q_dct)
+    dct_block = dequantize_dct_block(q_dct)
+    print("dctblock:\n", dct_block)
+    print("inv:\n", inv_dct(dct_block))
 
 
-    # n = [[16, 0, 0, 0, 0, 0, 0, 0],
+    # n = [[1, 1, 0, 0, 0, 0, 0, 0],
     #     [0, 0, 0, 0, 0, 0, 0, 0],
     #     [0, 0, 0, 0, 0, 0, 0, 0],
     #     [0, 0, 0, 0, 0, 0, 0, 0],
