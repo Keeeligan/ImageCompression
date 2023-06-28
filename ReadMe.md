@@ -6,9 +6,6 @@ simple but rough one, and the other a more complex one.
 For a more detailed description on the algorithms and this assignment check the .docx in the 
 "Documentation/" folder.
 
-For the time being the complex algorithm DOES NOT WORK as it should due to a bug in the DCT functions.
-Using the GUI is still possible, but the output image for the complex algorithm isn't what it should be.
-
 
 ## GUI
 The GUI is built around the input and output image, to start you can select an input image from the
