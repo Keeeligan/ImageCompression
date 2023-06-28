@@ -12,6 +12,8 @@ quantization_table = np.array([
     [13,  12,  12,  13, 16, 19, 21,  21]
 ])
 
+np.set_printoptions(suppress=True)
+
 
 def test_algorithm(img: np.ndarray):
     # height, width = img.shape[0], img.shape[1]
@@ -200,12 +202,24 @@ def chrominance_rescale(lum, cb, cr):
     # Get the dimensions of the input channels
     height, width = lum.shape
 
+    print("Before rescale:")
+    print("lum:", lum.shape)
+    print("Cb", cb.shape)
+    print("cr:", cr.shape)
+
     # Rescale the chrominance channels to the correct size
     cb_res = np.repeat(np.repeat(cb, 4, axis=1), 4, axis=0)[:height, :width]
     cr_res = np.repeat(np.repeat(cr, 4, axis=1), 4, axis=0)[:height, :width]
 
     # Create the rescaled image array
     img = np.empty(shape=(height, width, 3), dtype=np.uint8)
+
+    print("After rescale:")
+    print("lum:", lum.shape)
+    print("Cb", cb_res.shape)
+    print("cr:", cr_res.shape)
+
+
 
     # Fill the channels
     img[:, :, 0] = lum
@@ -246,7 +260,6 @@ def discrete_cosine_transform(img: np.ndarray, block_size=8):
             block = img[y * block_size:(y + 1) * block_size, x * block_size:(x + 1) * block_size]
             # if flag:
             #     print("Block\n", block)
-            print(type(block))
             dct_block = dct(block)
             if flag:
                 print("block after dct:\n", dct_block)
@@ -331,12 +344,20 @@ def dct(block):
         np.ndarray: Compressed DCT block.
 
     """
-    block = block/255
+    # block /= 255
+    # block -= 128
     N = block.shape[0]
     M = block.shape[1]
-    alpha_pq = np.ones_like(block) * np.sqrt(2 / M)
-    alpha_pq[0, :] = 1 / np.sqrt(M)
-    alpha_pq[:, 0] = 1 / np.sqrt(N)
+    alpha_p = np.ones_like(block) * np.sqrt(2 / M)
+    alpha_p[0, :] = 1 / np.sqrt(M)
+    alpha_q = np.ones_like(block) * np.sqrt(2 / M)
+    alpha_q[:, 0] = 1 / np.sqrt(N)
+
+    # print("alpha_p:\n", alpha_p)
+    #
+    # print("alpha_q:\n", alpha_q)
+    #
+    # print("alpha_pq:\n", alpha_q * alpha_p)
 
     dct_block = np.zeros_like(block, dtype=float)
 
@@ -360,8 +381,8 @@ def dct(block):
                     dct_block[q, p] += block[n, m] * cos_p * cos_q
 
     # Multiply with alpha
-    dct_block *= alpha_pq
-    print("alpha_pq:\n",alpha_pq)
+    dct_block *= alpha_p * alpha_q
+    # dct_block *= alpha_pq
     dct_block = np.round(dct_block)
     return dct_block
 
@@ -371,7 +392,7 @@ def inv_dct(dct_block):
     Applies the inverse Discrete Cosine Transform (IDCT or DCT-III) to a given DCT block.
 
     Args:
-        dct_block (np.ndarray): Compressed DCT block as a 2D NumPy array.
+        dct_block (np.ndarray): DCT block as a 2D NumPy array.
 
     Returns:
         np.ndarray: Reconstructed block as a 2D NumPy array.
@@ -392,27 +413,38 @@ def inv_dct(dct_block):
                 for m in range(M):
                     cos_p = np.cos((np.pi * (2 * m + 1) * p) / (2 * M))
                     cos_q = np.cos((np.pi * (2 * n + 1) * q) / (2 * N))
-                    # if p == 0:
-                    #     alpha_p = 1/np.sqrt(M)
-                    # else:
-                    #     alpha_p = np.sqrt(2/M)
-                    #
-                    # if q == 0:
-                    #     alpha_q = 1/np.sqrt(N)
-                    # else:
-                    #     alpha_q = np.sqrt(2/N)
+                    if p == 0:
+                        alpha_p = 1/np.sqrt(M)
+                    else:
+                        alpha_p = np.sqrt(2/M)
 
-                    # block[n, m] += alpha_p * alpha_q * dct_block[q, p] * cos_p * cos_q
-                    block[n, m] += dct_block[q, p] * cos_p * cos_q
+                    if q == 0:
+                        alpha_q = 1/np.sqrt(N)
+                    else:
+                        alpha_q = np.sqrt(2/N)
+
+                    block[n, m] += alpha_p * alpha_q * dct_block[q, p] * cos_p * cos_q
+                    # block[n, m] += dct_block[q, p] * cos_p * cos_q
 
     # Multiply with alpha
-    block *= alpha_pq
-    print("amax:\n", np.amax(block))
-    if np.amax(block) != 0:
-        block /= np.amax(block)
-    block *= 255
-    return block
+    # block *= alpha_pq
+    # block *= 255
+    # block += 128
+    # block = scale_to_range(block)
+    block = np.round(block)
+    return block.astype(np.uint8)
 
+
+
+def scale_to_range(array, new_min = 0, new_max = 255):
+    """source: https://stackoverflow.com/questions/36000843/scale-numpy-array-to-certain-range"""
+    minimum, maximum = np.min(array), np.max(array)
+    if maximum - minimum != 0:
+        m = (new_max - new_min) / (maximum - minimum)
+    else:
+        m = (new_max - new_min)
+    b = new_min - m * minimum
+    return m * array + b
 
 
 def quantize_dct_block(dct_block):
@@ -511,21 +543,29 @@ def run_length_decoding(rle_blocks, block_size=8):
 
 
 def test():
-    n_row = [255., 0., 0., 255., 255., 255., 255., 255.]
-    n = np.array([n_row,
-        n_row,
-        n_row,
-        n_row,
-        n_row,
-        n_row,
-        n_row,
-        n_row], dtype=float)
+    # n_row = [333.] * 8
+    #
+    # n = np.array([n_row] * 8, dtype=float)
+    # n[:, 4] = 100
+    # n[:, 1] = -170.
+    # print(scale_to_range(n))
 
-    q_dct = quantize_dct_block(dct(n))
-    print("quantized block:\n", q_dct)
-    dct_block = dequantize_dct_block(q_dct)
-    print("dctblock:\n", dct_block)
-    print("inv:\n", inv_dct(dct_block))
+    n_row = [42] * 8
+
+    n = np.array([n_row] * 8, dtype=float)
+    n[:, 3] = 255
+    n[:, 4] = 0.
+
+    # n[3, :] = 100.
+
+    print("block before DCT:\n", n)
+    block = dct(n)
+    print("Block after dct:\n", block)
+    # q_dct = quantize_dct_block(block)
+    # print("quantized block:\n", q_dct)
+    # dct_block = dequantize_dct_block(q_dct)
+    # print("dctblock:\n", block)
+    print("inverted block:\n", inv_dct(block))
 
 
     # n = [[1, 1, 0, 0, 0, 0, 0, 0],

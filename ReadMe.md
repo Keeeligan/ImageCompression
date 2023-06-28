@@ -103,4 +103,4 @@ were used are found below. To run the app all you have to do is run "main.py".
 - os
 
 ## License
-Specify what license is used for this project
+This code is open source, check "LICENSE.md" for more information about copyright.

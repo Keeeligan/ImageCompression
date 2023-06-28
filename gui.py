@@ -85,7 +85,7 @@ def run_app():
 
                 if c_compress_button.collidepoint(event.pos):
                     if selected_in_img != "":
-                        print("Starting complex compression")
+                        ("Starting complex compression")
                         print(selected_in_img)
                         i_main.compress_alg_c(selected_in_img)
 
